@@ -3,24 +3,24 @@ FIX::Lite
 
 DESCRIPTION
 
-Simple FIX (Financial Information eXchange) protocol module
+Simple FIX (Financial Information eXchange) protocol module.
 
 INSTALLATION
 
 To install this module type the following:
 
-   perl Makefile.PL
-   make
-   make test
-   make install
+   perl Makefile.PL<br/>
+   make<br/>
+   make test<br/>
+   make install<br/>
 
 DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-IO::Socket
-IO::Select
-Time::HiRes
+IO::Socket<br/>
+IO::Select<br/>
+Time::HiRes<br/>
 
 COPYRIGHT AND LICENCE
 

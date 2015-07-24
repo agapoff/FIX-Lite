@@ -455,7 +455,7 @@ Version 0.01
       Debug => $debug
   ) or die "Cannot send request: $!";
 
-  # We the use lastRequest() method to get the parsed answer
+  # We then use lastRequest() method to get the parsed answer
 
   if ( $fix->lastRequest('MsgType') eq "REJECT" ) {
       print "Request was rejected\n";
