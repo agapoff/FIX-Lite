@@ -1,6 +1,5 @@
 package FIX::Lite;
 
-use 5.020002;
 use vars qw($VERSION @ISA);
 use warnings;
 use strict;
@@ -480,7 +479,7 @@ Version 0.01
 
   $fix->quit();
 
-  # And a simple example of the handler-function:
+  # And a simple example of the handler function:
 
   sub handler {
      my $resp = shift;
