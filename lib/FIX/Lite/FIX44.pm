@@ -5,8 +5,6 @@ package FIX::Lite::FIX44;
 use strict;
 use warnings;
 
-use Data::Dumper;
-
 my $fix44;
 
 sub getFix() {
