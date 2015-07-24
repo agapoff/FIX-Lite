@@ -1,4 +1,7 @@
 Revision history for Perl extension FIX::Lite.
 
+0.02  Fri Jul 24 13:37:06 2015
+- Removed some useless dependencies
+
 0.01  Thu Jul 23 16:27:56 2015
 - Initial release

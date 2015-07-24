@@ -13,7 +13,7 @@ use Time::HiRes qw(gettimeofday);
 
 #@ISA = qw(Net::Cmd IO::Socket::INET);
 @ISA = qw(IO::Socket::INET);
-$VERSION = "0.01";
+$VERSION = "0.02";
 
 my $fixDict;
 my $MsgSeqNum = 0;
@@ -403,7 +403,7 @@ FIX::Lite - Simple FIX (Financial Information eXchange) protocol module
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =head1 SYNOPSIS
 
