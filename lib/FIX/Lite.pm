@@ -392,7 +392,7 @@ sub quit {
 
 sub getMilliseconds {
     my $time = gettimeofday;
-    return int(($time-int($time))*1000);
+    return sprintf("%03d",int(($time-int($time))*1000));
 }
 1; # End of FIX::Lite
 __END__

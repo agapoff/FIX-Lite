@@ -5,6 +5,8 @@ DESCRIPTION
 
 Simple FIX (Financial Information eXchange) protocol module.
 
+For usage and some examples please see the page on metacpan.org: <a href="https://metacpan.org/pod/FIX::Lite">https://metacpan.org/pod/FIX::Lite</a>
+
 INSTALLATION
 
 To install this module type the following:
