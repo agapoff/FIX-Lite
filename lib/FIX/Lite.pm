@@ -13,7 +13,7 @@ use Time::HiRes qw(gettimeofday);
 
 #@ISA = qw(Net::Cmd IO::Socket::INET);
 @ISA = qw(IO::Socket::INET);
-$VERSION = "0.02";
+$VERSION = "0.03";
 
 my $fixDict;
 my $MsgSeqNum = 0;
@@ -144,6 +144,14 @@ sub listen {
                 elsif ( $parsedResp->{MsgType} eq '0' ) {
                     print "   This is heartbeat. Will not pass it to handler\n" if ($arg{Debug});
                 }
+                elsif ( $parsedResp->{MsgType} eq '1' ) {
+                    my $TestReqID = (defined $parsedResp->{TestReqID})?$parsedResp->{TestReqID}:'TEST';
+                    print "   This is TestRequest. Will send heartbeat with TestReqID $TestReqID\n" if ($arg{Debug});
+                    $self->heartbeat( 
+                        TestReqID => $TestReqID,
+                        Debug => $arg{Debug}
+                    );
+                }
                 else {
                     $handler->($parsedResp);
                 }
@@ -161,7 +169,7 @@ sub listen {
 
 sub loggedIn {
     my $self = shift;
-    return 1 if ${*$self}->{logon}->{'MsgType'} eq getMessageType('Logon');
+    return 1 if (defined ${*$self}->{logon}->{'MsgType'} && ${*$self}->{logon}->{'MsgType'} eq getMessageType('Logon'));
     return 0;
 }
 
@@ -403,7 +411,7 @@ FIX::Lite - Simple FIX (Financial Information eXchange) protocol module
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =head1 SYNOPSIS
 
@@ -471,9 +479,10 @@ Version 0.02
         Debug => 0
   );
 
-  # Every incoming message (except heartbeats) will call some handler function,
+  # Every incoming message (except Heartbeats and TestRequests) will call some handler function,
   # we need to just pass its reference as an argument. As for the hearbeats then
-  # module will send them every HeartBtInt seconds (default is 30)
+  # module will send them every HeartBtInt seconds (default is 30). And also the module will automatically answer
+  # the test requests
 
   # To explicitly close the connection we can use quit() method  
 

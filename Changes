@@ -1,5 +1,9 @@
 Revision history for Perl extension FIX::Lite.
 
+0.02  Mon Jul 27 2015
+- Fixed timestamp generationg for SendingTime tag
+- Module can now answer TestRequests automatically
+
 0.02  Fri Jul 24 13:37:06 2015
 - Removed some useless dependencies
 
