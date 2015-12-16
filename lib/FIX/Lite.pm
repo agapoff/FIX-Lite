@@ -2,7 +2,7 @@ package FIX::Lite;
 
 use vars qw($VERSION @ISA);
 use warnings;
-#use strict;
+use strict;
 
 use IO::Socket;
 use POSIX qw(strftime);
