@@ -140,39 +140,32 @@ sub listen {
    
 		#Split into each single msg
 		for my $fixMsg ( split /8=FIX.4.4\x{01}/, $response ) { # Split on FIX version
-        	#	print "----\nSplitted FIX message:\n".$fixMsg."\n" if ($arg{Debug} && length($fixMsg)>0);
     		
- 		next if (length($fixMsg)<=0);
+ 			next if (length($fixMsg)<=0);
 
-		print "----\nSplitted FIX message:\n".$fixMsg."\n" if ($arg{Debug}); 
+			print "----\nSplitted FIX message:\n".$fixMsg."\n" if ($arg{Debug}); 
     
-                #my $parsedResp = parseFixMessage($response);
-		my $parsedResp = parseFixMessage($fixMsg);
-		my %parsedResp2 = fromString($fixMsg);
+			my %parsedResp = fromString($fixMsg);
 
-		my $testMsgType = $parsedResp2{35};
-		print "Test fromString: "."$testMsgType  \n";
+                	if ( ! defined $parsedResp{MsgType} ) {
+                    		print "   Cannot parse message\n" if ($arg{Debug});
+                	}
+                	elsif ( $parsedResp{MsgType} eq '0' ) {
+                    		print "   This is heartbeat. Will not pass it to handler\n" if ($arg{Debug});
+                	}
+                	elsif ( $parsedResp{MsgType} eq '1' ) {
+                    		my $TestReqID = (defined $parsedResp{TestReqID})?$parsedResp{TestReqID}:'TEST';
+                    		print "   This is TestRequest. Will send heartbeat with TestReqID $TestReqID\n" if ($arg{Debug});
+                    		$self->heartbeat( 
+                        		TestReqID => $TestReqID,
+                        		Debug => $arg{Debug}
+                    			);
+                	}
+                	else {
+		    		$handler->(%parsedResp);
+                	}
 
-                if ( ! defined $parsedResp2{MsgType} ) {
-                    print "   Cannot parse message\n" if ($arg{Debug});
-                }
-                elsif ( $parsedResp2{MsgType} eq '0' ) {
-                    print "   This is heartbeat. Will not pass it to handler\n" if ($arg{Debug});
-                }
-                elsif ( $parsedResp2{MsgType} eq '1' ) {
-                    my $TestReqID = (defined $parsedResp2{TestReqID})?$parsedResp2{TestReqID}:'TEST';
-                    print "   This is TestRequest. Will send heartbeat with TestReqID $TestReqID\n" if ($arg{Debug});
-                    $self->heartbeat( 
-                        TestReqID => $TestReqID,
-                        Debug => $arg{Debug}
-                    );
-                }
-                else {
-                    #$handler->($parsedResp);
-		    $handler->(%parsedResp2);
-                }
-
-		}#for my $fixMsg
+		}
             }
         }
 
@@ -504,11 +497,6 @@ sub parseFixMessage {
     for my $node ( split /\x01/, $message ) { # Split on "SOH"
         my @kvp = split /=/, $node; 
         if (scalar @kvp == 2) {
-	    my $isGrp = isGroup($kvp[0]);
-	    if ( $isGrp==1 ) {
-		my $fn = getFieldName($kvp[0]);
-	    	print "FieldName: $fn  IsGroup: $isGrp Value: $kvp[1]\n";
-	    }
             $nodes->{$kvp[0]}=$kvp[1];
             $nodes->{getFieldName($kvp[0])}=$kvp[1];
         }
@@ -526,12 +514,8 @@ sub fromString($) {
         my @fields = split( "\001", $s );
         my $n = scalar(@fields) - 1;
 
-	print "Inside fromString $s \n";
-
         _parseFixArray( \%arr, undef, undef, 0, \@fields );
 
-       # $self->{_AMSG} = \%arr;
-       # $self->{_SMSG} = $s;
 	return %arr;
 }
 
@@ -543,13 +527,9 @@ sub _parseFixArray($$$$$) {
         my $n       = scalar(@$fields);
         my $i       = $iField;
 
-	print "$n $i ###\n";
-
         while ( $i < $n ) {
                 my $field = $fields->[$i];
                 my ( $k, $v ) = ( $field =~ /^([^=]+)=(.*)$/ );
-
-		print "Field: $field\n";
 
                 if ( defined $arr->{$k} ) {
                         return $i if defined $gName;
