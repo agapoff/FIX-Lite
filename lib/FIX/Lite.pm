@@ -150,17 +150,17 @@ sub listen {
 		my $parsedResp = parseFixMessage($fixMsg);
 		my %parsedResp2 = fromString($fixMsg);
 
-		my $testMsgType = %parsedResp2->{35};
+		my $testMsgType = $parsedResp2{35};
 		print "Test fromString: "."$testMsgType  \n";
 
-                if ( ! defined %parsedResp2->{MsgType} ) {
+                if ( ! defined $parsedResp2{MsgType} ) {
                     print "   Cannot parse message\n" if ($arg{Debug});
                 }
-                elsif ( %parsedResp2->{MsgType} eq '0' ) {
+                elsif ( $parsedResp2{MsgType} eq '0' ) {
                     print "   This is heartbeat. Will not pass it to handler\n" if ($arg{Debug});
                 }
-                elsif ( %parsedResp2->{MsgType} eq '1' ) {
-                    my $TestReqID = (defined %parsedResp2->{TestReqID})?%parsedResp2->{TestReqID}:'TEST';
+                elsif ( $parsedResp2{MsgType} eq '1' ) {
+                    my $TestReqID = (defined $parsedResp2{TestReqID})?$parsedResp2{TestReqID}:'TEST';
                     print "   This is TestRequest. Will send heartbeat with TestReqID $TestReqID\n" if ($arg{Debug});
                     $self->heartbeat( 
                         TestReqID => $TestReqID,
@@ -365,6 +365,8 @@ sub _isFieldInStructure($$) {
 }
 
 #Add _getGroupInStructure
+sub _getGroupInStructure($$);
+
 sub _getGroupInStructure($$) {
         my ($s, $gn) = @_;
 
@@ -532,6 +534,8 @@ sub fromString($) {
        # $self->{_SMSG} = $s;
 	return %arr;
 }
+
+sub _parseFixArray($$$$$);
 
 sub _parseFixArray($$$$$) {
         my ( $arr, $msgType, $gName, $iField, $fields ) = @_;
