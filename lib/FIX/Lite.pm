@@ -137,24 +137,23 @@ sub listen {
                 return 1;
             } else {
                 print "----\nReceived FIX message:\n".readableFix($response)."\n" if ($arg{Debug});
-   
-		#Split into each single msg
-		for my $fixMsg ( split /8=FIX.4.4\x{01}/, $response ) { # Split on FIX version
-    		
- 			next if (length($fixMsg)<=0);
 
-			print "----\nSplitted FIX message:\n".$fixMsg."\n" if ($arg{Debug}); 
+                #Split into each single msg
+                for my $fixMsg ( split /8=FIX.4.4\x{01}/, $response ) { # Split on FIX version
+                    next if (length($fixMsg)<=0);
+
+                    print "  Splitted FIX message:\n".readableFix($fixMsg)."\n" if ($arg{Debug}); 
     
-			my %parsedResp = fromString($fixMsg);
+			my $parsedResp = parseFixMessage($fixMsg);
 
-                	if ( ! defined $parsedResp{MsgType} ) {
+                	if ( ! defined $parsedResp->{MsgType} ) {
                     		print "   Cannot parse message\n" if ($arg{Debug});
                 	}
-                	elsif ( $parsedResp{MsgType} eq '0' ) {
+                	elsif ( $parsedResp->{MsgType} eq '0' ) {
                     		print "   This is heartbeat. Will not pass it to handler\n" if ($arg{Debug});
                 	}
-                	elsif ( $parsedResp{MsgType} eq '1' ) {
-                    		my $TestReqID = (defined $parsedResp{TestReqID})?$parsedResp{TestReqID}:'TEST';
+                	elsif ( $parsedResp->{MsgType} eq '1' ) {
+                    		my $TestReqID = (defined $parsedResp->{TestReqID})?$parsedResp->{TestReqID}:'TEST';
                     		print "   This is TestRequest. Will send heartbeat with TestReqID $TestReqID\n" if ($arg{Debug});
                     		$self->heartbeat( 
                         		TestReqID => $TestReqID,
@@ -162,7 +161,7 @@ sub listen {
                     			);
                 	}
                 	else {
-		    		$handler->(%parsedResp);
+		    		$handler->($parsedResp);
                 	}
 
 		}
@@ -274,116 +273,98 @@ sub getField($) {
     return $fixDict->{hFields}->{$f};
 }
 
-#Add isGroup function
-##
 # returns 1 if given field is a group header field
-# $dict->isGroup('NoAllocs')  -> returns 1
-# $dict->isGroup('Symbol')    -> returns 0
+# isGroup('NoAllocs')  -> returns 1
+# isGroup('Symbol')    -> returns 0
 sub isGroup($) {
-        my $f  = shift;
-        my $ff = getField($f);
-        return defined $ff ? $ff->{type} eq 'NUMINGROUP' : 0;
+    my $f  = shift;
+    my $ff = getField($f);
+    return defined $ff ? $ff->{type} eq 'NUMINGROUP' : 0;
 }
 
-#Add isFieldInGroup
-##
 # returns true if given field is a member of the given group of given message.
 sub isFieldInGroup($$$) {
-        my ( $m, $g, $f ) = @_;
+    my ( $m, $g, $f ) = @_;
 
-        my $gn = getFieldName($g);
-        return 0 if !defined $gn;
-        return 0 if !isGroup($gn);
-        my $fn = getFieldName($f);
-        return 0 if !defined $fn;
+    my $gn = getFieldName($g);
+    return 0 if ! defined $gn;
+    return 0 if ! isGroup($gn);
 
-        my $msg = getGroupInMessage( $m, $g );
-        return 0 if !defined $msg;
-        return _isFieldInStructure($msg, $fn);
+    my $msg = getGroupInMessage($m, $g);
+    return 0 if ! defined $msg;
+    return _isFieldInStructure($msg, $f);
 }
 
-#Add getGroupInMessage
-##
 # return a ref on group of a message, this then allows us to work on the group elements.
 # $d->getGroupInMessage('D','NoAllocs')
 # will return a ref on the NoAllocs group allowing us to then parse it
 #
 # Looks recursively into groups of groups if needed.
 sub getGroupInMessage($$) {
-        my ( $m, $g ) = @_;
-        my $s = getMessageFields($m);
-        return undef if !defined $s;
-        my $gn = getFieldName($g);
-        return undef if !defined($gn);
+    my ( $m, $g ) = @_;
+    my $s = getMessageFields($m);
+    return undef if ! defined $s;
+    my $gn = getFieldName($g);
+    return undef if ! defined($gn);
 
-        return undef if ! isGroup($g);
+    return undef if ! isGroup($g);
 
-        return _getGroupInStructure( $s, $gn );
+    return _getGroupInStructure( $s, $gn );
 }
 
-#Add _isFieldInStructure
-##
 # returns true if given field is found in the structure.
 sub _isFieldInStructure($$);
 
 sub _isFieldInStructure($$) {
-        my ( $m, $f ) = @_;
-        return 0 if ( !defined $m || !defined $f );
-        my $fn = getFieldName($f);
-        return 0 if !defined $fn;
+    my ( $m, $f ) = @_;
+    return 0 unless ( defined $m && defined $f );
+    my $fn = getFieldName($f);
+    return 0 if ! defined $fn;
 
-        for my $f2 ( @{$m} ) {
+    for my $f2 ( @{$m} ) {
+        # found the field? return 1. Beware that if the element is a component then we don't accept
+        # it as a valid field of the structure.
+        return 1 if ( $f2->{name} eq $fn && !defined $f2->{component} );
 
-                #print "checking if $fn eq " . $f2->{name} . "\n";
-                ##
-                # found the field? return 1. Beware that if the element is a component then we don't accept
-                # it as a valid field of the structure.
-                return 1 if ( $f2->{name} eq $fn && !defined $f2->{component} );
-
-                ##
-                # if the field is a group then scan all elements of the group
-                if ( defined $f2->{group} ) {
-                        return 1 if _isFieldInStructure( $f2->{group}, $fn ) == 1;
-                }
-
-                ##
-                # if the field is a component, we need to go to the component hash and check out its
-                # composition.
-                if ( defined $f2->{component} ) {
-                        return 1 if _isFieldInStructure( getComponentFields($f2->{name}), $fn ) == 1;
-                }
+        # if the field is a group then scan all elements of the group
+        if ( defined $f2->{group} ) {
+            return 1 if _isFieldInStructure( $f2->{group}, $fn ) == 1;
         }
 
-        return 0;
+        # if the field is a component, we need to go to the component hash and check out its
+        # composition.
+        if ( defined $f2->{component} ) {
+            return 1 if _isFieldInStructure( getComponentFields($f2->{name}), $fn ) == 1;
+        }
+    }
+    return 0;
 }
 
-#Add _getGroupInStructure
 sub _getGroupInStructure($$);
 
 sub _getGroupInStructure($$) {
-        my ($s, $gn) = @_;
+    my ($s, $gn) = @_;
 
-        my $ret;
-        ##
-        # parse each field in the structure, and ....
-        for my $e ( @{$s} ) {
-                # we found the group name
-                return $e->{group} if ($e->{name} eq $gn && defined $e->{group});
+    my $ret;
+    # parse each field in the structure, and ....
+    for my $e ( @{$s} ) {
+        # we found the group name
+        return $e->{group} if ($e->{name} eq $gn && defined $e->{group});
 
-                # stop at each group header
-                if (defined $e->{group}) {
-                        # and research recursively
-                        $ret = _getGroupInStructure($e->{group},$gn);
-                        return $ret if defined $ret;
-                }
-
-                # if we run into a component we need to check that out too
-                if (defined $e->{component}) {
-                        $ret = _getGroupInStructure(getComponentFields($e->{name}), $gn);
-                        return $ret if defined $ret;
-                }
+        # stop at each group header
+        if (defined $e->{group}) {
+             # and research recursively
+             $ret = _getGroupInStructure($e->{group},$gn);
+             return $ret if defined $ret;
         }
-        undef;
+
+        # if we run into a component we need to check that out too
+        if (defined $e->{component}) {
+             $ret = _getGroupInStructure(getComponentFields($e->{name}), $gn);
+             return $ret if defined $ret;
+        }
+    }
+    undef;
 }
 
 
@@ -492,82 +473,61 @@ sub getComponentFields($) {
 
 sub parseFixMessage {
     my $message = shift;
-    my $nodes;
+    return unless defined $message;
+    my $parsedMsg;
 
-    for my $node ( split /\x01/, $message ) { # Split on "SOH"
-        my @kvp = split /=/, $node; 
-        if (scalar @kvp == 2) {
-            $nodes->{$kvp[0]}=$kvp[1];
-            $nodes->{getFieldName($kvp[0])}=$kvp[1];
-        }
-    }
-    return $nodes;
-}
+    my @fields = split /\x01/, $message; # Split on "SOH" 
+    _parseFixArray( \$parsedMsg, undef, undef, 0, \@fields );
 
-##Add fromString and  _parseFixArray
-sub fromString($) {
-        #my ( $self, $s ) = @_;
-	my $s = shift;
-
-        return if !defined $s;
-        my %arr;
-        my @fields = split( "\001", $s );
-        my $n = scalar(@fields) - 1;
-
-        _parseFixArray( \%arr, undef, undef, 0, \@fields );
-
-	return %arr;
+    return $parsedMsg;
 }
 
 sub _parseFixArray($$$$$);
 
 sub _parseFixArray($$$$$) {
-        my ( $arr, $msgType, $gName, $iField, $fields ) = @_;
-        #my $fixDico = $self->{_dd};
-        my $n       = scalar(@$fields);
-        my $i       = $iField;
+    my ( $result, $msgType, $groupTag, $iField, $fields ) = @_;
+    my $i = $iField;
 
-        while ( $i < $n ) {
-                my $field = $fields->[$i];
-                my ( $k, $v ) = ( $field =~ /^([^=]+)=(.*)$/ );
+    while ( $i < scalar(@$fields) ) {
+        my $field = $fields->[$i];
+        my ( $k, $v ) = ( $field =~ /^([^=]+)=(.*)$/ );
 
-                if ( defined $arr->{$k} ) {
-                        return $i if defined $gName;
-                        warn("Field $k is already in hash!");
-                }
-                if ( defined $gName ) {
-                        return $i if !isFieldInGroup( $msgType, $gName, $k );
-                }
-		#Store both using Tag and FieldName.
-                $arr->{$k} = $v;
-		$arr->{getFieldName($k)} = $v;
-                if ( $k == 8 ) {
-                        #do nothing
-                }
-                elsif ( $k == 35 ) {
-                        $msgType = $v;
-                }
-                else {
-                        my $fieldName = getFieldName($k);
-                        if ( !defined $fieldName ) {
-                                warn("Did not find field $k in dictionary");
-                        }
-                        elsif ( isGroup($k) ) {
-                                my @elems;
-                                ++$i;
-                                for my $j ( 1 .. $v ) {
-                                        my %newArr;
-                                        $i = _parseFixArray( \%newArr, $msgType, $k, $i, $fields );
-                                        push( @elems, \%newArr );
-                                }
-				#Store both using Tag and FieldName.
-                                $arr->{$k} = \@elems;
-				$arr->{$fieldName} = \@elems;
-                                --$i;
-                        }
-                }
-                ++$i;
-	}
+        if ( defined $$result->{$k} ) {
+             return $i if defined $groupTag;
+             warn("Field $k is already in hash!");
+        }
+        if ( defined $groupTag ) {
+             return $i if !isFieldInGroup( $msgType, $groupTag, $k );
+        }
+        #Store both using Tag and FieldName.
+        $$result->{$k} = $v;
+        my $fieldName = getFieldName($k);
+        if ( defined $fieldName ) {
+            $$result->{$fieldName} = $v;
+        } else {
+            warn("Haven't found field $k in dictionary");
+        }
+       
+        if ( $fieldName eq 'BeginString' ) {
+        } 
+        elsif ( $fieldName eq 'MsgType' ) {
+            $msgType = $v;
+        }
+        elsif ( isGroup($k) ) {
+            my @elems;
+            $i++;
+            for ( 1 .. $v ) {
+                my $localResult;
+                $i = _parseFixArray( \$localResult, $msgType, $k, $i, $fields );
+                push( @elems, $localResult );
+            }
+            #Store both using Tag and FieldName.
+            $$result->{$k} = \@elems;
+            $$result->{$fieldName} = \@elems;
+            $i--;
+        }
+    $i++;
+    }
 }
 
 sub randomString {
@@ -685,7 +645,14 @@ Version 0.03
      my $resp = shift;
      print "Received message ".$resp->{MsgType}."\n";
      if ( $resp->{MsgType} eq 'W' ) {
-        print "Received Price ".$resp->{MDEntryPx}." for symbol ".$resp->{Symbol}."\n";
+        if ( defined $resp->{NoMDEntries} ) {
+            print "Received Prices for symbol ".$resp->{Symbol}."\n";
+            foreach ( @{$resp->{NoMDEntries}} ) {
+                print "Price ".$_->{MDEntryPx}.", type ".$_->{MDEntryType}."\n";
+            } 
+        } else {
+            print "Received Price ".$resp->{MDEntryPx}." for symbol ".$resp->{Symbol}."\n";
+        }
      }
      return 1;
   }
