@@ -1,6 +1,9 @@
 Revision history for Perl extension FIX::Lite.
+0.04  Sat Dec 19 2015
+- Now we can parse concatenated FIX messages
+- Also we can parse grouped tags correctly
 
-0.02  Mon Jul 27 2015
+0.03  Mon Jul 27 2015
 - Fixed timestamp generationg for SendingTime tag
 - Module can now answer TestRequests automatically
 

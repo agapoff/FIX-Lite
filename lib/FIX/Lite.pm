@@ -13,7 +13,7 @@ use Time::HiRes qw(gettimeofday);
 
 #@ISA = qw(Net::Cmd IO::Socket::INET);
 @ISA = qw(IO::Socket::INET);
-$VERSION = "0.03";
+$VERSION = "0.04";
 
 my $fixDict;
 my $MsgSeqNum = 0;
@@ -499,7 +499,7 @@ sub _parseFixArray($$$$$) {
         if ( defined $groupTag ) {
              return $i if !isFieldInGroup( $msgType, $groupTag, $k );
         }
-        #Store both using Tag and FieldName.
+        # Store both using Tag and FieldName.
         $$result->{$k} = $v;
         my $fieldName = getFieldName($k);
         if ( defined $fieldName ) {
@@ -508,9 +508,7 @@ sub _parseFixArray($$$$$) {
             warn("Haven't found field $k in dictionary");
         }
        
-        if ( $fieldName eq 'BeginString' ) {
-        } 
-        elsif ( $fieldName eq 'MsgType' ) {
+        if ( $fieldName eq 'MsgType' ) {
             $msgType = $v;
         }
         elsif ( isGroup($k) ) {
@@ -521,7 +519,7 @@ sub _parseFixArray($$$$$) {
                 $i = _parseFixArray( \$localResult, $msgType, $k, $i, $fields );
                 push( @elems, $localResult );
             }
-            #Store both using Tag and FieldName.
+            # Store both using Tag and FieldName.
             $$result->{$k} = \@elems;
             $$result->{$fieldName} = \@elems;
             $i--;
@@ -562,7 +560,7 @@ FIX::Lite - Simple FIX (Financial Information eXchange) protocol module
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04
 
 =head1 SYNOPSIS
 
