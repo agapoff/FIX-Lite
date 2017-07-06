@@ -755,32 +755,32 @@ Version 0.05
 
 =head1 SYNOPSIS
 
-use FIX::Lite;
-my $fix = FIX::Lite->new(
+    use FIX::Lite;
+    my $fix = FIX::Lite->new(
         Host         => 'somefixserver.com',
         Port         => 5201,
         Debug        => 0,
         Timeout      => 60
         ) or die "Cannot connect to server: $!";
-
-# Then we usually need to login
-
-$fix->logon(
+    
+    # Then we usually need to login
+    
+    $fix->logon(
         SenderCompID => 'somevalue1',
         TargetCompID => 'somevalue2',
         TargetSubID  => 'somevalue3',
         Username     => 'somevalue4',
         Password     => 'somevalue5',
         Debug        => 0
-);
-
-# To check the login results we can use method loggedIn()
-
-die "Cannot logon: $!" unless $fix->loggedIn()
-
-# After logon we can make some market request
-
-$fix->request(
+    );
+    
+    # To check the login results we can use method loggedIn()
+    
+    die "Cannot logon: $!" unless $fix->loggedIn()
+    
+    # After logon we can make some market request
+    
+    $fix->request(
        MsgType => 'MarketDataRequest',
        SubscriptionRequestType => 'SNAPSHOT_PLUS_UPDATES',
        MarketDepth => 1,
@@ -798,51 +798,51 @@ $fix->request(
           { MDEntryType => 'OFFER' }
        ],
        Debug => $debug
-) or die "Cannot send request: $!";
-
-# We then use lastRequest() method to get the parsed answer
-
-if ( $fix->lastRequest('MsgType') eq "REJECT" ) {
-    print "Request was rejected\n";
-    print "Reason: ".$fix->lastRequest('SessionRejectReason')."\n";
-    print "RefTag: ".FIX::Lite->getTagById($fix->lastRequest('RefTagID'))."\n";
-}
-
-# And yup, we can use FIX::Lite->getTagById() method to resolve tag codes into
-# human-readable values
-# After sending some subscriptions we can relax and wait for the quotes
-
-$fix->listen( \&handler,
+    ) or die "Cannot send request: $!";
+    
+    # We then use lastRequest() method to get the parsed answer
+    
+    if ( $fix->lastRequest('MsgType') eq "REJECT" ) {
+        print "Request was rejected\n";
+        print "Reason: ".$fix->lastRequest('SessionRejectReason')."\n";
+        print "RefTag: ".FIX::Lite->getTagById($fix->lastRequest('RefTagID'))."\n";
+    }
+    
+    # And yup, we can use FIX::Lite->getTagById() method to resolve tag codes into
+    # human-readable values
+    # After sending some subscriptions we can relax and wait for the quotes
+    
+    $fix->listen( \&handler,
         HeartBtInt => 30,
         Debug => 0
-);
-
-# Every incoming message (except Heartbeats and TestRequests) will call some handler function,
-# we need to just pass its reference as an argument. As for the hearbeats then
-# module will send them every HeartBtInt seconds (default is 30). And also the module will automatically answer
-# the test requests
-
-# To explicitly close the connection we can use quit() method
-
-$fix->quit();
-
-# And a simple example of the handler function:
-
-sub handler {
-    my $resp = shift;
-    print "Received message ".$resp->{MsgType}."\n";
-    if ( $resp->{MsgType} eq 'W' ) {
-        if ( defined $resp->{NoMDEntries} ) {
-            print "Received Prices for symbol ".$resp->{Symbol}."\n";
-            foreach ( @{$resp->{NoMDEntries}} ) {
-                print "Price ".$_->{MDEntryPx}.", type ".$_->{MDEntryType}."\n";
+    );
+    
+    # Every incoming message (except Heartbeats and TestRequests) will call some handler function,
+    # we need to just pass its reference as an argument. As for the hearbeats then
+    # module will send them every HeartBtInt seconds (default is 30). And also the module will automatically answer
+    # the test requests
+    
+    # To explicitly close the connection we can use quit() method
+    
+    $fix->quit();
+    
+    # And a simple example of the handler function:
+    
+    sub handler {
+        my $resp = shift;
+        print "Received message ".$resp->{MsgType}."\n";
+        if ( $resp->{MsgType} eq 'W' ) {
+            if ( defined $resp->{NoMDEntries} ) {
+                print "Received Prices for symbol ".$resp->{Symbol}."\n";
+                foreach ( @{$resp->{NoMDEntries}} ) {
+                    print "Price ".$_->{MDEntryPx}.", type ".$_->{MDEntryType}."\n";
+                }
+            } else {
+                print "Received Price ".$resp->{MDEntryPx}." for symbol ".$resp->{Symbol}."\n";
             }
-        } else {
-            print "Received Price ".$resp->{MDEntryPx}." for symbol ".$resp->{Symbol}."\n";
         }
+        return 1;
     }
-    return 1;
-}
 
 =head1 SERVER MODE
 
