@@ -14,7 +14,7 @@ use Carp qw( croak );
 
 #@ISA = qw(Net::Cmd IO::Socket::INET);
 @ISA = qw(IO::Socket::INET);
-$VERSION = "0.05";
+$VERSION = "0.06";
 
 my $fixDict;
 my $MsgSeqNum = 0;
@@ -751,7 +751,7 @@ FIX::Lite - Simple FIX (Financial Information eXchange) protocol module
 
 =head1 VERSION
 
-Version 0.05
+Version 0.06
 
 =head1 SYNOPSIS
 
