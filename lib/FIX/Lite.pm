@@ -14,7 +14,7 @@ use Carp qw( croak );
 
 #@ISA = qw(Net::Cmd IO::Socket::INET);
 @ISA = qw(IO::Socket::INET);
-$VERSION = "0.06";
+$VERSION = "0.07";
 
 my $fixDict;
 my $MsgSeqNum = 0;
@@ -426,9 +426,8 @@ sub constructMessage($$) {
     undef $arg->{MsgType};
     $MsgSeqNum++;
 
-    my $time = strftime "%Y%m%d-%H:%M:%S.".getMilliseconds(), gmtime;
     push @fields, getFieldNumber('MsgType')."=".getMessageType($msgtype);
-    push @fields, getFieldNumber('SendingTime')."=".$time;
+    push @fields, getFieldNumber('SendingTime')."=".getSendingTime();
     push @fields, getFieldNumber('MsgSeqNum')."=".$MsgSeqNum;
 
     my @allFields = ( @{getMessageHeader()}, @{getMessageFields($msgtype)} );
@@ -738,10 +737,11 @@ sub quit {
     $self->close;
 }
 
-sub getMilliseconds {
-    my $time = gettimeofday;
-    return sprintf("%03d",int(($time-int($time))*1000));
+sub getSendingTime {
+    my ( $s, $us ) = gettimeofday;
+    return strftime("%Y%m%d-%H:%M:%S.", gmtime($s)).sprintf("%03d",int($us*0.001));
 }
+
 1; # End of FIX::Lite
 __END__
 
@@ -751,7 +751,7 @@ FIX::Lite - Simple FIX (Financial Information eXchange) protocol module
 
 =head1 VERSION
 
-Version 0.06
+Version 0.07
 
 =head1 SYNOPSIS
 
